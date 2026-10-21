@@ -1,0 +1,29 @@
+# Dependencies and local package caches
+/node_modules/
+/.pnpm-store/
+/.npm-cache/
+
+# Build and generated files
+/.next/
+/out/
+/build/
+/coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# Local configuration and secrets
+.env*
+!.env.example
+*.pem
+*.key
+/.vercel/
+/.aws/
+
+# Logs and operating system files
+*.log
+.DS_Store
+Thumbs.db
+
+# Editor files
+/.idea/
+/.vscode/
