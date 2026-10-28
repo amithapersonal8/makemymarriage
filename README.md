@@ -2,7 +2,9 @@
 
 An India-first wedding planning application. V1 uses a single Next.js + TypeScript modular monolith.
 
-This initial scaffold contains a responsive application shell and placeholder homepage. Business features, authentication, database access, external integrations, background jobs, and test frameworks are deferred. No external credentials or environment variables are required to run or build it.
+The application contains a responsive public homepage adapted from the approved Stitch direction, with V1 feature descriptions and clearly labeled sample wedding previews. Authentication, database access, external integrations, background jobs, and business functionality remain deferred. No external credentials or environment variables are required to run or build it.
+
+The homepage includes section navigation, a mobile menu, and expandable FAQs. Page calls to action explore the features; the header's Get started and Log in buttons are visual placeholders with no click action. Authentication is deferred. EB Garamond and DM Sans fonts are bundled in `public/fonts` with their open-source licenses, so rendering and builds do not require a remote font service.
 
 ## Local setup
 
@@ -51,9 +53,10 @@ src/
     api/v1/                    REST API location, reserved; no endpoints yet
     globals.css                Tailwind CSS import and base styles
     layout.tsx                 Root document and application shell
-    page.tsx                   Minimal placeholder homepage
+    page.tsx                   Public marketing homepage
   components/
-    layout/app-shell.tsx       Shared responsive header, main, and footer
+    home/                      Homepage icons, sample content, and wedding preview
+    layout/                    Shared shell and interactive mobile navigation
     ui/                        Shared UI primitives, reserved
   lib/                         Infrastructure utilities, reserved
   modules/                     Domain modules, reserved

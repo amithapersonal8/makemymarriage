@@ -1,37 +1,97 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { MobileNavigation } from "@/components/layout/mobile-navigation";
+
+const navigation = [
+  ["Features", "#features"],
+  ["For families", "#families"],
+  ["How it works", "#how-it-works"],
+  ["FAQs", "#faqs"],
+] as const;
+
+function Brand() {
+  return (
+    <Link href="/" className="brand" aria-label="Make My Marriage home">
+      <span className="brand-mark" aria-hidden="true">
+        M
+      </span>
+      <span>Make My Marriage</span>
+    </Link>
+  );
+}
+
 export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <div className="flex min-h-dvh flex-col">
-      <a
-        href="#main-content"
-        className="sr-only rounded-md bg-white px-4 py-3 text-sm font-semibold text-stone-900 focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-10 focus:outline-2 focus:outline-offset-4 focus:outline-rose-800"
-      >
+    <>
+      <a href="#main-content" className="skip-link">
         Skip to content
       </a>
-      <header className="border-b border-stone-200 bg-white">
-        <div className="mx-auto flex w-full max-w-5xl px-6 py-5 sm:px-8">
-          <Link
-            href="/"
-            className="rounded-sm text-lg font-semibold tracking-tight focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-rose-800"
-          >
-            Make My Marriage
-          </Link>
+      <header className="site-header">
+        <div className="container header-inner">
+          <Brand />
+          <nav className="desktop-nav" aria-label="Main navigation">
+            {navigation.map(([label, href]) => (
+              <a key={href} href={href}>
+                {label}
+              </a>
+            ))}
+          </nav>
+          <div className="header-actions">
+            <button type="button" className="button button-small login-button">
+              Log in
+            </button>
+            <button type="button" className="button button-small">
+              Get started
+            </button>
+          </div>
+          <MobileNavigation items={navigation} />
         </div>
       </header>
-      <main
-        id="main-content"
-        tabIndex={-1}
-        className="mx-auto flex w-full max-w-5xl flex-1 items-center px-6 py-16 sm:px-8 sm:py-24"
-      >
+      <main id="main-content" tabIndex={-1}>
         {children}
       </main>
-      <footer className="border-t border-stone-200">
-        <div className="mx-auto w-full max-w-5xl px-6 py-5 text-sm text-stone-600 sm:px-8">
-          One wedding. Many moments. Together.
+      <footer className="site-footer">
+        <div className="container footer-grid">
+          <div className="footer-brand">
+            <Brand />
+            <p className="footer-tagline">
+              Every celebration, beautifully organized.
+            </p>
+            <p>
+              A little less coordinating.
+              <br />A lot more celebrating.
+            </p>
+          </div>
+          <div>
+            <p className="eyebrow">Discover</p>
+            <a href="#features">Planning tools</a>
+            <a href="#families">For your family</a>
+            <a href="#guest-experience">For your guests</a>
+          </div>
+          <div>
+            <p className="eyebrow">Get to know us</p>
+            <a href="#how-it-works">How it works</a>
+            <a href="#faqs">Common questions</a>
+            <a href="#celebrations">Your celebrations</a>
+          </div>
+          <div className="footer-note">
+            <p className="eyebrow">Made for your moments</p>
+            <p>
+              One wedding. Multiple events.
+              <br />
+              One shared planning space.
+            </p>
+            <span className="made-with">
+              Thoughtfully made for Indian weddings.
+            </span>
+          </div>
+        </div>
+        <div className="container footer-bottom">
+          <span>© {new Date().getFullYear()} Make My Marriage</span>
+          <span>With love, for the whole family.</span>
         </div>
       </footer>
-    </div>
+    </>
   );
 }
