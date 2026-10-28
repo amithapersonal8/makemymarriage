@@ -110,6 +110,7 @@ GitHub Actions runs on pushes and pull requests. It installs from the frozen pnp
 - MongoDB-backed fixed-window limits apply across application instances: signup 5/client/hour and 100 total/hour; login 20/client/15 minutes, 10/email/15 minutes, and 200 total/15 minutes. Failed/duplicate attempts count too. The limits are defined in the auth service and currently use fixed conservative defaults.
 - Only Vercel's `x-vercel-forwarded-for` header is accepted as a client IP when `VERCEL=1`. Other deployments/local development share a conservative client bucket; configure a trusted proxy adapter before deploying elsewhere. Arbitrary client `X-Forwarded-For` is ignored.
 - Logout revokes the current session before clearing the cookie. Separate devices may keep their own sessions. Logout-all, password recovery, account/email editing, and ownership/membership functionality are not part of this slice. A database outage fails closed and presents a retry message.
+- An account-page session guard synchronizes logout across same-origin browser tabs with a notification-only local-storage marker (no credentials or user data). It also revalidates on mount, tab focus/visibility, and history restoration, hiding account details while checking. If storage is blocked, focus checks still detect logout; failed checks hide details and offer retry. Server-side session checks remain authoritative.
 
 ## Database indexes and production setup
 

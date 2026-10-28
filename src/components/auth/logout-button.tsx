@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { notifyOtherTabsOfLogout } from "@/components/auth/session-sync";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -16,6 +17,7 @@ export function LogoutButton() {
         credentials: "same-origin",
       });
       if (!response.ok) throw new Error("Logout failed");
+      notifyOtherTabsOfLogout();
       router.replace("/login");
       router.refresh();
     } catch {

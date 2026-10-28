@@ -8,7 +8,7 @@ The minimal application scaffold, public homepage UI, and account-access slice a
 
 The homepage still uses illustrative wedding data. Get started and Log in now open working signup/login forms backed by MongoDB. Users can register, remain signed in across refreshes, visit a protected welcome page, and log out. There is no wedding setup, wedding membership, business-module API, email delivery, vendor integration, or media-storage integration yet.
 
-The user configured `MONGODB_URI` in an ignored `.env.local`. A read-only connection and ping to Atlas succeeded on 28 October 2026, without changing records or indexes. Authentication was verified against isolated temporary MongoDB databases, including the production browser flow; registration/login against Atlas itself has not been exercised. Public pages and builds work without database credentials.
+The user configured `MONGODB_URI` in an ignored `.env.local`. A read-only connection and ping to Atlas succeeded on 28 October 2026, without changing records or indexes. Authentication was verified against isolated temporary MongoDB databases, including the production browser flow. On 28 October, manual testing in the user's Chrome browser against the running development application at `http://127.0.0.1:3000` also verified registration, login, and logout using a persistent test account. The browser run did not independently inspect which database the running server used. Public pages and builds work without database credentials.
 
 This document records implementation progress. Product scope and architecture remain governed by the design documents, `AGENTS.md`, and the latest explicit user decisions. Future feature work requires approval.
 
@@ -19,6 +19,7 @@ This document records implementation progress. Product scope and architecture re
 | Minimal project scaffold | Complete | 21 October 2026 | `3745d7b` |
 | Public homepage UI | Complete; navigation follow-up resolved 28 October | 27 October 2026 | `547eba3` |
 | Account access: signup, login, sessions, protected welcome, logout | Implemented and validated; Atlas connection verified | 28 October 2026 | Account-access implementation commit |
+| Cross-tab logout synchronization | Implemented and validated | 28 October 2026 | Cross-tab logout fix commit |
 
 ## Feature history
 
@@ -99,6 +100,11 @@ Validation:
 - Headless Chrome verified signup and automatic sign-in, session persistence after reload, invalid-password errors, successful login, logout, protected-page denial, production cookie flags, no-store identity responses, and cross-origin rejection.
 - Browser layout checks passed at 320, 390, 768, 1024, and 1440 pixels with no horizontal overflow or page errors. The reviewed 404-to-home navigation fix was verified.
 - The user-supplied Atlas URI passed a read-only connection and ping check. No Atlas records or indexes were created by that check.
+- Manual Chrome testing on 28 October against the running development server passed signup and automatic sign-in, refresh persistence, logout after signup, incorrect-password rejection, successful subsequent login, logout after login, and direct `/account` redirection to `/login` while signed out.
+- Manual validation checks passed malformed signup email, short signup password, mismatched confirmation, whitespace-only name, duplicate email with uppercase spelling, empty login email, empty login password, and nonexistent-account login. Incorrect passwords and nonexistent accounts displayed the same safe error. Keyboard Tab/Space operated the signup password show/hide control successfully.
+- The manual run created `manual.qa.20261028@example.com` (display name `Manual QA October`) and left it signed out. The account was retained; no credentials were saved in repository files. This run did not repeat expiry, throttling, maximum-length boundaries, mobile layouts, or production-cookie/security checks; earlier automated coverage remains separate evidence.
+- Cross-tab Chrome follow-up on 28 October: while signed in in tab A, opening `/login` in tab B redirected to `/account`. After logout completed in tab A, tab B still displayed the previous welcome page, email, and logout button when selected. Refreshing tab B redirected to `/login`; explicitly navigating to `/account` afterward also redirected to `/login`. Fresh protected-page requests correctly enforced logout, but already-rendered account UI did not synchronize across tabs. Both tested tabs ended signed out. This test left automatic cross-tab UI invalidation open; it was subsequently resolved by the cross-tab logout fix documented below. No application code was changed during this manual test.
+- Chrome displayed a development hydration warning for an extra `cz-shortcut-listen="true"` attribute on `<body>`. Browser-extension injection is suspected but unconfirmed. This did not block the tested account flows; reproduction in a clean browser profile remains follow-up work.
 
 Policies and remaining limitations:
 
@@ -107,9 +113,26 @@ Policies and remaining limitations:
 - Password recovery/email delivery, logout-all, account editing, wedding creation/membership, social login, and signup verification are not implemented in this slice. Password recovery remains a V1 requirement before public release.
 - Accounts are not verified email identities. Membership and ownership must be introduced and authorized separately in a future approved milestone.
 
+### Account-access follow-up: cross-tab logout
+
+**Implemented:** 28 October 2026.
+
+**Commit:** included in `fix: synchronize logout across browser tabs`, the commit containing this status update.
+
+The stale account UI issue recorded in the earlier manual cross-tab test above is now resolved by this implementation:
+
+- After successful server logout, other same-origin tabs receive a notification-only local-storage marker. It contains no account details or session secrets.
+- The protected welcome page hides its contents while validating the current session on mount, focus, visibility changes, and browser-history restoration. Logout notifications immediately invalidate the rendered account view and redirect to login.
+- Storage restrictions do not prevent logout; returning to a tab rechecks the server session. If the session check fails because the server/network is unavailable, account details stay hidden and the page offers retry.
+- Pending requests cannot restore stale account details after logout. An unsuccessful logout does not invalidate other tabs.
+
+Validation: all 21 tests passed (the existing 12 auth integration tests and 9 session-synchronization regression tests). Lint, type checking, production build, formatting, and whitespace checks passed. An isolated production Chrome check with two tabs verified automatic cross-tab logout, no stale email/logout controls, blocked-storage focus fallback, failed logout preserving the session, history navigation after logout, and retry after a failed session check. No page errors were reported, and these checks did not access the user's Atlas database.
+
+Manual retest on 28 October in the in-app browser against the running `http://127.0.0.1:3000` application passed: both tabs displayed the test account welcome page; logout in tab A automatically redirected tab B to `/login` without refreshing or navigating tab B. The stale welcome message, account email, and logout button were absent. Refresh remained on login, and direct `/account` navigation redirected to login. Opening `/login` in tab B while signed in had also redirected to `/account`. Both in-app tabs ended signed out. This confirms the earlier stale-page issue is resolved in this tested browser; the native Chrome retest was interrupted by the automation tool and is not claimed as completed.
+
 ## Upcoming work — not yet implemented
 
-Next, exercise account registration/login against the configured development Atlas database. The next proposed business milestone is wedding creation with atomic Owner membership and tenant-isolation tests, followed by events and family collaboration. Password recovery requires a secure email-delivery milestone before public release. Planning, households/RSVPs, communication, vendors, wedding websites/livestreams, and media follow according to their dependencies.
+Manual registration/login against the running development application has passed; independently confirming its database target and reproducing the hydration warning in a clean browser profile remain follow-ups. The next proposed business milestone is wedding creation with atomic Owner membership and tenant-isolation tests, followed by events and family collaboration. Password recovery requires a secure email-delivery milestone before public release. Planning, households/RSVPs, communication, vendors, wedding websites/livestreams, and media follow according to their dependencies.
 
 This is a planning direction, not approval to begin those features. Define and approve each milestone's scope and acceptance criteria before implementation.
 
