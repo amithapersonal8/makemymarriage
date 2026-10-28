@@ -4,7 +4,7 @@
 
 - This repository is Make My Marriage V1, a single Next.js + TypeScript modular monolith.
 - Preserve the existing files in `docs/`. Use the latest explicit product decisions and finalized architecture when older PRD details conflict.
-- The approved and implemented baseline includes the minimal scaffold and public homepage UI with sample previews and inactive Get started / Log in buttons. Authentication, sessions, database code, business APIs, integrations, jobs, and other business features require explicit approval for a later phase.
+- The approved scope includes the scaffold, public homepage, and account-access slice (signup/login/logout, expiring sessions, MongoDB-backed accounts, and a protected welcome page). Wedding setup, memberships, business modules, password-recovery email, integrations, and jobs require explicit approval for a later phase. Read the project status document for actual completion and validation.
 - Do not commit or push unless explicitly instructed.
 
 ## Project progress tracking

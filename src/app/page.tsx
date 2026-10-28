@@ -10,6 +10,7 @@ import {
 } from "@/components/home/home-data";
 import { Icon } from "@/components/home/icon";
 import { WeddingPreview } from "@/components/home/wedding-preview";
+import { AppShell } from "@/components/layout/app-shell";
 
 function SectionHeading({
   eyebrow,
@@ -31,7 +32,7 @@ function SectionHeading({
 
 export default function HomePage() {
   return (
-    <>
+    <AppShell>
       <section className="hero section">
         <div className="container">
           <div className="hero-copy">
@@ -394,6 +395,6 @@ export default function HomePage() {
           </span>
         </div>
       </section>
-    </>
+    </AppShell>
   );
 }

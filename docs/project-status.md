@@ -1,12 +1,14 @@
 # Make My Marriage — Project Status
 
-Last updated: 27 October 2026
+Last updated: 28 October 2026
 
 ## Current state
 
-The minimal application scaffold and public homepage UI are complete. Development continues from this existing Next.js + TypeScript foundation; the full V1 application is not yet implemented.
+The minimal application scaffold, public homepage UI, and account-access slice are implemented. Development continues from this Next.js + TypeScript foundation; the full V1 application is not yet implemented.
 
-The homepage uses illustrative wedding data. Its Get started and Log in buttons intentionally have no click action. There is no authentication, database persistence, business API, email delivery, vendor integration, or media-storage integration in the application yet.
+The homepage still uses illustrative wedding data. Get started and Log in now open working signup/login forms backed by MongoDB. Users can register, remain signed in across refreshes, visit a protected welcome page, and log out. There is no wedding setup, wedding membership, business-module API, email delivery, vendor integration, or media-storage integration yet.
+
+The user configured `MONGODB_URI` in an ignored `.env.local`. A read-only connection and ping to Atlas succeeded on 28 October 2026, without changing records or indexes. Authentication was verified against isolated temporary MongoDB databases, including the production browser flow; registration/login against Atlas itself has not been exercised. Public pages and builds work without database credentials.
 
 This document records implementation progress. Product scope and architecture remain governed by the design documents, `AGENTS.md`, and the latest explicit user decisions. Future feature work requires approval.
 
@@ -15,7 +17,8 @@ This document records implementation progress. Product scope and architecture re
 | Milestone | Status | Completed | Reference |
 | --- | --- | --- | --- |
 | Minimal project scaffold | Complete | 21 October 2026 | `3745d7b` |
-| Public homepage UI | Complete, with follow-up noted below | 27 October 2026 | `547eba3` |
+| Public homepage UI | Complete; navigation follow-up resolved 28 October | 27 October 2026 | `547eba3` |
+| Account access: signup, login, sessions, protected welcome, logout | Implemented and validated; Atlas connection verified | 28 October 2026 | Account-access implementation commit |
 
 ## Feature history
 
@@ -67,11 +70,46 @@ Limitations:
 - Homepage descriptions introduce planned V1 capabilities; the corresponding business modules are not implemented.
 - Signup and login remain unimplemented; their header buttons are intentionally inactive.
 
-Follow-up identified in review: shared header/footer links use local anchors such as `#features`. On the existing 404 page, those targets do not exist. Change shared navigation to homepage-qualified links such as `/#features` in a future fix. This issue remained open when the homepage was committed.
+Follow-up identified in review: shared header/footer links used local anchors such as `#features`, which did not exist on the 404 page. This remained open in the homepage commit and was resolved in the account-access implementation on 28 October: shared links now use homepage-qualified URLs such as `/#features`, with a styled 404 page and a working home link. The historical inactive signup/login buttons were also connected as part of account access.
+
+### 3. Account access
+
+**Implemented:** 28 October 2026
+
+**Status:** implementation validated locally; Atlas connection and ping verified.
+
+**Commit:** included in `feat: implement secure account access`, the commit containing this milestone update.
+
+Implemented:
+
+- Responsive `/signup` and `/login` pages adapted from the Stitch login direction, with shared auth layout, accessible forms, password visibility control, confirmation validation, pending states, and safe errors.
+- MongoDB/Mongoose user and session persistence, Zod input validation, and thin Node.js REST handlers for `/api/v1/auth/signup`, `/login`, `/logout`, and `/me`.
+- Immediate signup without email verification and automatic sign-in. Names are trimmed; emails are normalized and unique; passwords require 15–128 characters and use salted, memory-hard scrypt hashes.
+- Random opaque session tokens stored only as hashes in MongoDB. Seven-day absolute expiry, no sliding renewal, HttpOnly/SameSite cookies, Secure host-only cookies in production, and revocation on logout.
+- A protected `/account` welcome page that validates the session and user status on every request. It contains no sample wedding dashboard or premature wedding setup functionality.
+- Exact-origin CSRF controls, capped JSON requests, safe response projections, no-store auth API responses, and persistent client/email/global rate limits.
+- Server-only boundaries, lazy/reused database connection, an explicit auth index migration, and a secret-free build.
+- Fixed shared homepage navigation from non-home routes and updated README, `.env.example`, and CI.
+- Focused Vitest integration tests using isolated temporary MongoDB instances, without Atlas credentials or external email services.
+
+Validation:
+
+- Twelve integration tests passed, covering duplicate-email races, password/session hashing, login failures, expiry/revocation/disabled accounts, idempotent logout, origin checks, malicious/invalid payloads, cookie flags, safe errors, and persistent throttling.
+- Lint, TypeScript checking, formatting, frozen-lockfile installation, whitespace checks, and production build passed. The production build did not require a database connection.
+- Headless Chrome verified signup and automatic sign-in, session persistence after reload, invalid-password errors, successful login, logout, protected-page denial, production cookie flags, no-store identity responses, and cross-origin rejection.
+- Browser layout checks passed at 320, 390, 768, 1024, and 1440 pixels with no horizontal overflow or page errors. The reviewed 404-to-home navigation fix was verified.
+- The user-supplied Atlas URI passed a read-only connection and ping check. No Atlas records or indexes were created by that check.
+
+Policies and remaining limitations:
+
+- Configure a dedicated development Atlas database in `.env.local` and use the exact browser `APP_ORIGIN`. Production requires HTTPS, an explicit origin, and `pnpm db:indexes` before registration traffic.
+- Only trusted Vercel forwarding metadata supplies client IPs. Local/non-Vercel deployments share a conservative client rate-limit bucket; another deployment needs an explicitly trusted proxy adapter. Numerical limits are documented in README.
+- Password recovery/email delivery, logout-all, account editing, wedding creation/membership, social login, and signup verification are not implemented in this slice. Password recovery remains a V1 requirement before public release.
+- Accounts are not verified email identities. Membership and ownership must be introduced and authorized separately in a future approved milestone.
 
 ## Upcoming work — not yet implemented
 
-The discussed direction is to resolve authentication/session and authorization decisions, then incrementally build authentication, wedding workspaces, events, and family collaboration. Planning, households/RSVPs, communication, vendors, wedding websites/livestreams, and media follow according to their dependencies.
+Next, exercise account registration/login against the configured development Atlas database. The next proposed business milestone is wedding creation with atomic Owner membership and tenant-isolation tests, followed by events and family collaboration. Password recovery requires a secure email-delivery milestone before public release. Planning, households/RSVPs, communication, vendors, wedding websites/livestreams, and media follow according to their dependencies.
 
 This is a planning direction, not approval to begin those features. Define and approve each milestone's scope and acceptance criteria before implementation.
 

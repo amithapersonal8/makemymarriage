@@ -2,9 +2,9 @@
 
 An India-first wedding planning application. V1 uses a single Next.js + TypeScript modular monolith.
 
-The application contains a responsive public homepage adapted from the approved Stitch direction, with V1 feature descriptions and clearly labeled sample wedding previews. Authentication, database access, external integrations, background jobs, and business functionality remain deferred. No external credentials or environment variables are required to run or build it.
+The application contains a responsive public homepage plus account signup, login, a protected welcome page, and logout. Accounts and sessions use MongoDB Atlas/Mongoose. Wedding setup, memberships, planning modules, external integrations, and background jobs remain deferred. The public homepage and production build require no service credentials; account access requires a database connection.
 
-The homepage includes section navigation, a mobile menu, and expandable FAQs. Page calls to action explore the features; the header's Get started and Log in buttons are visual placeholders with no click action. Authentication is deferred. EB Garamond and DM Sans fonts are bundled in `public/fonts` with their open-source licenses, so rendering and builds do not require a remote font service.
+The homepage includes section navigation, a mobile menu, and expandable FAQs. Get started opens `/signup`; Log in opens `/login`. EB Garamond and DM Sans fonts are bundled in `public/fonts` with their open-source licenses, so rendering and builds do not require a remote font service.
 
 ## Local setup
 
@@ -25,7 +25,7 @@ pnpm dev
 
 Open <http://127.0.0.1:3000>. The server binds to loopback by default. Stop it with Ctrl+C. To use another port, run `pnpm dev --port 3001`.
 
-Copy `.env.example` to `.env.local` when local configuration is needed; this step is optional for the scaffold. Do not put real secrets in `.env.example` or commit local environment files. Only browser-safe values may use `NEXT_PUBLIC_`.
+For account access, copy `.env.example` to `.env.local`, set `MONGODB_URI` to a dedicated development Atlas database, and set `APP_ORIGIN` to the exact browser origin (default `http://127.0.0.1:3000`). Update the origin when using another port or `localhost`. Use a least-privilege database user and an appropriate Atlas network access rule. Do not put real secrets in `.env.example` or commit local environment files. Only browser-safe values may use `NEXT_PUBLIC_`.
 
 ## Commands
 
@@ -39,6 +39,8 @@ Copy `.env.example` to `.env.local` when local configuration is needed; this ste
 | `pnpm format:check` | Check formatting without editing files                        |
 | `pnpm build`        | Build the production application                              |
 | `pnpm start`        | Serve the production application after building               |
+| `pnpm test`         | Run auth integration tests against temporary local MongoDB    |
+| `pnpm db:indexes`   | Explicitly create required auth indexes in the configured DB  |
 
 Prettier excludes `docs/` to preserve the existing design documents. Generated Next.js files, local environment files, dependencies, and build artifacts are ignored by Git.
 
@@ -47,23 +49,28 @@ Prettier excludes `docs/` to preserve the existing design documents. Generated N
 ```text
 .github/workflows/ci.yml        Local validation checks in GitHub Actions
 docs/                          Existing product and technical designs
-public/                        Static assets, reserved
+public/                        Static assets and locally bundled fonts
+scripts/create-auth-indexes.mjs Explicit auth index migration
 src/
   app/
-    api/v1/                    REST API location, reserved; no endpoints yet
+    (auth)/                    Signup, login, protected account page, auth layout
+    api/v1/auth/               Signup, login, logout, and current-user endpoints
     globals.css                Tailwind CSS import and base styles
-    layout.tsx                 Root document and application shell
+    layout.tsx                 Root document
     page.tsx                   Public marketing homepage
   components/
+    auth/                      Forms, account shell, and logout control
     home/                      Homepage icons, sample content, and wedding preview
     layout/                    Shared shell and interactive mobile navigation
     ui/                        Shared UI primitives, reserved
-  lib/                         Infrastructure utilities, reserved
-  modules/                     Domain modules, reserved
+  lib/                         Lazy database connection and HTTP error type
+  modules/auth/                Validation, hashing, models, services, repository, tests
+tests/server-only.ts           Test-only server-boundary marker replacement
+vitest.config.mts              Focused integration test configuration
 AGENTS.md                      Development and architecture conventions
 ```
 
-Empty foundational directories contain only `.gitkeep` so they survive checkout. Domain subfolders, authentication/dashboard route groups, guest routes, `src/integrations`, jobs, database scripts, and test suites will be added when their implementation phase is approved. There are no domain placeholders or fake APIs.
+Other domain modules, the wedding dashboard, guest routes, `src/integrations`, and jobs will be added when their implementation phase is approved. There are no fake business APIs.
 
 Imports use `@/*` to resolve files under `src/`. React components render on the server by default. Tailwind uses its PostCSS plugin and CSS import; a separate Tailwind configuration file is not needed for this setup.
 
@@ -91,8 +98,25 @@ Latest explicit product and architecture decisions take precedence over older PR
 
 ## Continuous integration
 
-GitHub Actions runs on pushes and pull requests. It installs from the frozen pnpm lockfile, then checks lint, types, formatting, and the production build. The workflow needs no external service secrets and does not deploy the application.
+GitHub Actions runs on pushes and pull requests. It installs from the frozen pnpm lockfile, then checks lint, types, formatting, authentication tests, and the production build. Tests start an isolated MongoDB process using `mongodb-memory-server`; its official MongoDB binary is downloaded on the first test run, not through dependency lifecycle scripts. Tests never connect to Atlas and need no external service secrets. CI does not deploy the application.
+
+## Account access policies
+
+- Signup accepts name, email, and a 15–128-character password. Names are trimmed; emails are trimmed/lowercased and have a database unique index. Passwords are never trimmed or truncated. Signup creates an account immediately and signs it in; no email verification is required.
+- Passwords use Node.js asynchronous scrypt with a unique 128-bit salt, `N=131072`, `r=8`, `p=1`, and a 64-byte key. This follows a documented memory-hard configuration without requiring a native addon. See the [OWASP password storage guidance](https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html).
+- Sessions use random 256-bit opaque secrets, with only SHA-256 hashes stored in MongoDB. Sessions expire after seven days without sliding renewal. Expiry/revocation are checked on every protected read, independently of MongoDB TTL cleanup.
+- Cookies are HttpOnly, SameSite=Lax, and Path=/. Production uses a Secure `__Host-mmm_session` cookie with no Domain attribute. Local HTTP development uses `mmm_session`. Deploy production over HTTPS.
+- POST routes require the configured exact Origin; cross-site fetch metadata is rejected. JSON account payloads are capped at 16 KiB. Safe response projections omit password/session hashes, and account API responses are not cached.
+- MongoDB-backed fixed-window limits apply across application instances: signup 5/client/hour and 100 total/hour; login 20/client/15 minutes, 10/email/15 minutes, and 200 total/15 minutes. Failed/duplicate attempts count too. The limits are defined in the auth service and currently use fixed conservative defaults.
+- Only Vercel's `x-vercel-forwarded-for` header is accepted as a client IP when `VERCEL=1`. Other deployments/local development share a conservative client bucket; configure a trusted proxy adapter before deploying elsewhere. Arbitrary client `X-Forwarded-For` is ignored.
+- Logout revokes the current session before clearing the cookie. Separate devices may keep their own sessions. Logout-all, password recovery, account/email editing, and ownership/membership functionality are not part of this slice. A database outage fails closed and presents a retry message.
+
+## Database indexes and production setup
+
+Development creates the required auth indexes lazily on the first valid auth request. Production disables automatic index creation: run `pnpm db:indexes` against the intended deployment database before accepting registrations. It creates the unique user-email and session-token indexes, session-user lookup index, and TTL indexes for sessions and auth rate limits. The command does not drop collections/indexes or modify account data; duplicate existing email records must be resolved before it can succeed.
+
+Set `MONGODB_URI` and an HTTPS `APP_ORIGIN` in each deployment environment. Database connections are lazy and reused; no database connection occurs during `pnpm build`. No session-signing secret is required because sessions are random opaque tokens resolved from the database.
 
 ## Next development phase
 
-After explicit approval, define authentication/session policies and tenant authorization rules, then implement the first foundation slice: signup/login, wedding creation with Owner membership, and event creation. Add database setup, migrations, and focused authorization tests as part of that phase.
+After explicit approval, implement wedding creation with atomic Owner membership, followed by event management and tenant-isolation tests. Password recovery requires a separate secure email-delivery milestone before public release. See [project status](docs/project-status.md) for completed work and limitations.

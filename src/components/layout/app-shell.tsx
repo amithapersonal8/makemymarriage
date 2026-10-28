@@ -1,25 +1,15 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { Brand } from "@/components/layout/brand";
 import { MobileNavigation } from "@/components/layout/mobile-navigation";
 
 const navigation = [
-  ["Features", "#features"],
-  ["For families", "#families"],
-  ["How it works", "#how-it-works"],
-  ["FAQs", "#faqs"],
+  ["Features", "/#features"],
+  ["For families", "/#families"],
+  ["How it works", "/#how-it-works"],
+  ["FAQs", "/#faqs"],
 ] as const;
-
-function Brand() {
-  return (
-    <Link href="/" className="brand" aria-label="Make My Marriage home">
-      <span className="brand-mark" aria-hidden="true">
-        M
-      </span>
-      <span>Make My Marriage</span>
-    </Link>
-  );
-}
 
 export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
   return (
@@ -38,12 +28,12 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
             ))}
           </nav>
           <div className="header-actions">
-            <button type="button" className="button button-small login-button">
+            <Link href="/login" className="button button-small login-button">
               Log in
-            </button>
-            <button type="button" className="button button-small">
+            </Link>
+            <Link href="/signup" className="button button-small">
               Get started
-            </button>
+            </Link>
           </div>
           <MobileNavigation items={navigation} />
         </div>
@@ -65,15 +55,15 @@ export function AppShell({ children }: Readonly<{ children: ReactNode }>) {
           </div>
           <div>
             <p className="eyebrow">Discover</p>
-            <a href="#features">Planning tools</a>
-            <a href="#families">For your family</a>
-            <a href="#guest-experience">For your guests</a>
+            <Link href="/#features">Planning tools</Link>
+            <Link href="/#families">For your family</Link>
+            <Link href="/#guest-experience">For your guests</Link>
           </div>
           <div>
             <p className="eyebrow">Get to know us</p>
-            <a href="#how-it-works">How it works</a>
-            <a href="#faqs">Common questions</a>
-            <a href="#celebrations">Your celebrations</a>
+            <Link href="/#how-it-works">How it works</Link>
+            <Link href="/#faqs">Common questions</Link>
+            <Link href="/#celebrations">Your celebrations</Link>
           </div>
           <div className="footer-note">
             <p className="eyebrow">Made for your moments</p>

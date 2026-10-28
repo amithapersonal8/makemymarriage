@@ -9,7 +9,7 @@ permissions:
 
 jobs:
   validate:
-    name: Lint, types, and build
+    name: Lint, types, tests, and build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
@@ -38,6 +38,9 @@ jobs:
 
       - name: Check formatting
         run: pnpm format:check
+
+      - name: Test account access
+        run: pnpm test
 
       - name: Build
         run: pnpm build

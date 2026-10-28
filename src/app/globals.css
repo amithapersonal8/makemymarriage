@@ -154,11 +154,11 @@ summary:focus-visible {
   align-items: center;
   gap: 10px;
 }
-.header-actions button {
+.header-actions .button {
   cursor: pointer;
   white-space: nowrap;
 }
-.header-actions button:focus-visible {
+.header-actions .button:focus-visible {
   outline: 3px solid #50776b;
   outline-offset: 5px;
 }
@@ -1797,4 +1797,17 @@ summary::-webkit-details-marker {
   *::after {
     transition: none !important;
   }
+}
+
+.not-found {
+  text-align: center;
+  min-height: 55vh;
+}
+.not-found h1 {
+  font-size: clamp(35px, 5vw, 60px);
+  margin: 20px 0;
+}
+.not-found > p:not(.eyebrow) {
+  color: var(--muted);
+  margin-bottom: 25px;
 }
