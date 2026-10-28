@@ -4,8 +4,16 @@
 
 - This repository is Make My Marriage V1, a single Next.js + TypeScript modular monolith.
 - Preserve the existing files in `docs/`. Use the latest explicit product decisions and finalized architecture when older PRD details conflict.
-- The current approved phase is the minimal scaffold only. Authentication, sessions, database code, business APIs, integrations, jobs, and other business features require explicit approval for a later phase.
+- The approved and implemented baseline includes the minimal scaffold and public homepage UI with sample previews and inactive Get started / Log in buttons. Authentication, sessions, database code, business APIs, integrations, jobs, and other business features require explicit approval for a later phase.
 - Do not commit or push unless explicitly instructed.
+
+## Project progress tracking
+
+- Read `docs/project-status.md` when establishing the current project state before major feature work.
+- Update `docs/project-status.md` as part of every major feature implementation or significant milestone. Keep its current-state summary and feature history accurate; update existing entries when a feature progresses rather than duplicating them.
+- Record the date, status, implemented scope, validation performed, and material limitations or follow-up work. Preserve completed milestone history and include commit references when available.
+- Distinguish implemented functionality from sample UI, placeholders, proposed work, and deferred features. Mark a milestone complete only when its agreed scope is implemented and required validation has passed; report partial or blocked work honestly.
+- The status document tracks progress; it does not replace the PRD or architecture documents or authorize additional feature scope. Preserve existing design documents when updating progress.
 
 ## Architecture
 
