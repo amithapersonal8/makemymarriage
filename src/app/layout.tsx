@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { WeddingDraftProvider } from "@/components/weddings/wedding-draft-provider";
 
 import "./globals.css";
 
@@ -13,7 +14,9 @@ export default function RootLayout({
 }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        <WeddingDraftProvider>{children}</WeddingDraftProvider>
+      </body>
     </html>
   );
 }

@@ -18,12 +18,14 @@ export function watchSession(
   let invalid = false;
   let revision = 0;
   let pending: AbortController | undefined;
+  let poll: number | undefined;
 
   function invalidate() {
     if (stopped || invalid) return;
     invalid = true;
     revision++;
     pending?.abort();
+    window.clearTimeout(poll);
     onStatus("invalid");
   }
 
@@ -76,6 +78,10 @@ export function watchSession(
       if (!stopped && !invalid && current === revision) onStatus("unavailable");
     } finally {
       window.clearTimeout(timeout);
+      if (!stopped && !invalid && current === revision) {
+        window.clearTimeout(poll);
+        poll = window.setTimeout(() => void check(), 30000);
+      }
     }
   }
 
@@ -89,6 +95,7 @@ export function watchSession(
     if (document.visibilityState === "hidden") {
       revision++;
       pending?.abort();
+      window.clearTimeout(poll);
       if (!invalid) onStatus("checking");
     } else {
       void check();
@@ -107,6 +114,7 @@ export function watchSession(
       stopped = true;
       revision++;
       pending?.abort();
+      window.clearTimeout(poll);
       window.removeEventListener("storage", onStorage);
       window.removeEventListener("focus", onFocus);
       window.removeEventListener("pageshow", onFocus);

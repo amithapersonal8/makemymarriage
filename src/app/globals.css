@@ -41,6 +41,15 @@
   --line: #dde6e5;
   --serif: "EB Garamond", Georgia, serif;
 }
+.wedding-draft-notice {
+  padding: 16px;
+  margin-bottom: 20px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--canvas);
+  color: var(--muted);
+  font-size: 13px;
+}
 * {
   box-sizing: border-box;
 }

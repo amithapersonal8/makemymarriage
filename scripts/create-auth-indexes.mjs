@@ -30,7 +30,15 @@ if (!process.env.MONGODB_URI) {
     await db
       .collection("auth_rate_limits")
       .createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 });
-    console.log("Auth indexes created successfully.");
+    if (!(await db.listCollections({ name: "weddings" }).hasNext()))
+      await db.createCollection("weddings");
+    await db
+      .collection("wedding_members")
+      .createIndex({ weddingId: 1, userId: 1 }, { unique: true });
+    await db
+      .collection("wedding_members")
+      .createIndex({ userId: 1, weddingId: 1 });
+    console.log("Auth and wedding indexes created successfully.");
   } catch {
     console.error(
       "Auth index creation failed. Check database access and existing duplicate records.",

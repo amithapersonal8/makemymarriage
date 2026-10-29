@@ -2,7 +2,7 @@
 
 An India-first wedding planning application. V1 uses a single Next.js + TypeScript modular monolith.
 
-The application contains a responsive public homepage plus account signup, login, a protected welcome page, and logout. Accounts and sessions use MongoDB Atlas/Mongoose. Wedding setup, memberships, planning modules, external integrations, and background jobs remain deferred. The public homepage and production build require no service credentials; account access requires a database connection.
+The application contains a responsive public homepage, account access, and wedding onboarding. After signup/login, `/weddings` lists the signed-in user's weddings; `/weddings/new` creates one directly from a single form with atomic Owner membership. Members can view their wedding overview and Owners can edit its details. Accounts, sessions, weddings, and memberships use MongoDB Atlas/Mongoose. Invitation management, planning modules, external integrations, and background jobs remain deferred. Public pages and builds do not connect to the database.
 
 The homepage includes section navigation, a mobile menu, and expandable FAQs. Get started opens `/signup`; Log in opens `/login`. EB Garamond and DM Sans fonts are bundled in `public/fonts` with their open-source licenses, so rendering and builds do not require a remote font service.
 
@@ -29,18 +29,18 @@ For account access, copy `.env.example` to `.env.local`, set `MONGODB_URI` to a 
 
 ## Commands
 
-| Command             | Purpose                                                       |
-| ------------------- | ------------------------------------------------------------- |
-| `pnpm dev`          | Start the local development server                            |
-| `pnpm lint`         | Run ESLint; warnings fail the check                           |
-| `pnpm lint:fix`     | Apply automatic ESLint fixes                                  |
-| `pnpm typecheck`    | Generate Next.js route types and run strict TypeScript checks |
-| `pnpm format`       | Format project files with Prettier                            |
-| `pnpm format:check` | Check formatting without editing files                        |
-| `pnpm build`        | Build the production application                              |
-| `pnpm start`        | Serve the production application after building               |
-| `pnpm test`         | Run auth integration tests against temporary local MongoDB    |
-| `pnpm db:indexes`   | Explicitly create required auth indexes in the configured DB  |
+| Command             | Purpose                                                          |
+| ------------------- | ---------------------------------------------------------------- |
+| `pnpm dev`          | Start the local development server                               |
+| `pnpm lint`         | Run ESLint; warnings fail the check                              |
+| `pnpm lint:fix`     | Apply automatic ESLint fixes                                     |
+| `pnpm typecheck`    | Generate Next.js route types and run strict TypeScript checks    |
+| `pnpm format`       | Format project files with Prettier                               |
+| `pnpm format:check` | Check formatting without editing files                           |
+| `pnpm build`        | Build the production application                                 |
+| `pnpm start`        | Serve the production application after building                  |
+| `pnpm test`         | Run auth, session-sync, and wedding tests with temporary MongoDB |
+| `pnpm db:indexes`   | Create required auth and wedding indexes in the configured DB    |
 
 Prettier excludes `docs/` to preserve the existing design documents. Generated Next.js files, local environment files, dependencies, and build artifacts are ignored by Git.
 
@@ -50,11 +50,13 @@ Prettier excludes `docs/` to preserve the existing design documents. Generated N
 .github/workflows/ci.yml        Local validation checks in GitHub Actions
 docs/                          Existing product and technical designs
 public/                        Static assets and locally bundled fonts
-scripts/create-auth-indexes.mjs Explicit auth index migration
+scripts/create-auth-indexes.mjs Explicit auth and wedding index migration
 src/
   app/
-    (auth)/                    Signup, login, protected account page, auth layout
+    (auth)/                    Signup, login, legacy account redirect, auth layout
+    (workspace)/               Protected wedding list, create, overview, and edit
     api/v1/auth/               Signup, login, logout, and current-user endpoints
+    api/v1/weddings/           Wedding list, create, read, and update endpoints
     globals.css                Tailwind CSS import and base styles
     layout.tsx                 Root document
     page.tsx                   Public marketing homepage
@@ -62,9 +64,11 @@ src/
     auth/                      Forms, account shell, and logout control
     home/                      Homepage icons, sample content, and wedding preview
     layout/                    Shared shell and interactive mobile navigation
+    weddings/                  Reusable single form, monogram, and wedding card
     ui/                        Shared UI primitives, reserved
   lib/                         Lazy database connection and HTTP error type
   modules/auth/                Validation, hashing, models, services, repository, tests
+  modules/weddings/            Validation, DTOs, models, services, repository, tests
 tests/server-only.ts           Test-only server-boundary marker replacement
 vitest.config.mts              Focused integration test configuration
 AGENTS.md                      Development and architecture conventions
@@ -110,14 +114,24 @@ GitHub Actions runs on pushes and pull requests. It installs from the frozen pnp
 - MongoDB-backed fixed-window limits apply across application instances: signup 5/client/hour and 100 total/hour; login 20/client/15 minutes, 10/email/15 minutes, and 200 total/15 minutes. Failed/duplicate attempts count too. The limits are defined in the auth service and currently use fixed conservative defaults.
 - Only Vercel's `x-vercel-forwarded-for` header is accepted as a client IP when `VERCEL=1`. Other deployments/local development share a conservative client bucket; configure a trusted proxy adapter before deploying elsewhere. Arbitrary client `X-Forwarded-For` is ignored.
 - Logout revokes the current session before clearing the cookie. Separate devices may keep their own sessions. Logout-all, password recovery, account/email editing, and ownership/membership functionality are not part of this slice. A database outage fails closed and presents a retry message.
-- An account-page session guard synchronizes logout across same-origin browser tabs with a notification-only local-storage marker (no credentials or user data). It also revalidates on mount, tab focus/visibility, and history restoration, hiding account details while checking. If storage is blocked, focus checks still detect logout; failed checks hide details and offer retry. Server-side session checks remain authoritative.
+- The signed-in workspace session guard synchronizes logout across same-origin browser tabs with a notification-only local-storage marker (no credentials or user data). It also revalidates on mount, tab focus/visibility, and history restoration, hiding details while checking. If storage is blocked, focus checks still detect logout; failed checks hide details and offer retry. Server-side session checks remain authoritative.
 
 ## Database indexes and production setup
 
-Development creates the required auth indexes lazily on the first valid auth request. Production disables automatic index creation: run `pnpm db:indexes` against the intended deployment database before accepting registrations. It creates the unique user-email and session-token indexes, session-user lookup index, and TTL indexes for sessions and auth rate limits. The command does not drop collections/indexes or modify account data; duplicate existing email records must be resolved before it can succeed.
+Development creates the required auth and wedding indexes lazily. Production disables automatic index creation: run `pnpm db:indexes` against the intended deployment database before accepting traffic. It creates the unique user-email and session-token indexes, session-user lookup index, TTL indexes, wedding collections, unique wedding/user membership index, and user/wedding lookup index. It does not drop existing collections/indexes or modify account data; existing duplicates must be resolved before it can succeed.
+
+## Wedding onboarding
+
+The approved Stitch designs are implemented as reusable forms/cards and a protected signed-in shell. Required fields are bride name, groom name, and an editable suggested title. Dates, city/location, and description are optional; timezone defaults to `Asia/Kolkata` and is editable. Dates are calendar-date strings (`YYYY-MM-DD`), not UTC instants. Same-day celebrations are valid; an end date requires a start date and cannot precede it. Choosing undecided clears both dates. Text limits are 100 characters per name, 160 for title, 200 for location, and 2,000 for description. Date inputs support 1900–2199.
+
+`GET/POST /api/v1/weddings` list/create; `GET/PATCH /api/v1/weddings/:weddingId` read/update. PATCH currently accepts the full editable form, not a partial field patch. Every request authenticates the session; services enforce membership and Owner-only editing. Unknown/nonmember IDs return 404. Client-supplied roles and unknown fields are rejected. APIs return safe projections with `private, no-store`, origin checks for mutations, and capped JSON bodies. `/account` redirects to the wedding list for existing bookmarks.
+
+Creation uses a MongoDB transaction for the wedding and initial Owner membership. **Use Atlas or a local replica set; standalone MongoDB does not support this operation.** Tests use an isolated temporary replica set. There are no event, guest, invitation, photo-upload, deletion, or ownership-transfer controls in this milestone.
+
+Unsaved create/edit drafts stay only in the current tab's memory. Session checks keep the form mounted while hiding private content and disabling inputs when verification fails. Visible tabs recheck every 30 seconds and mutations recheck immediately before saving. After expiry or cookie loss, the same account can log in through the provided link and return to its unsaved form. Another account clears the previous account's drafts. Successful save or the form's Cancel/Back action clears that draft. Drafts are never written to localStorage, sessionStorage, or the database. The form/login flow explains that refresh/close discards them, and a native unload warning is requested while unsaved data exists; browser policies control whether that dialog appears.
 
 Set `MONGODB_URI` and an HTTPS `APP_ORIGIN` in each deployment environment. Database connections are lazy and reused; no database connection occurs during `pnpm build`. No session-signing secret is required because sessions are random opaque tokens resolved from the database.
 
 ## Next development phase
 
-After explicit approval, implement wedding creation with atomic Owner membership, followed by event management and tenant-isolation tests. Password recovery requires a separate secure email-delivery milestone before public release. See [project status](docs/project-status.md) for completed work and limitations.
+After explicit approval, proceed to event management and family collaboration in separate milestones. Password recovery requires a secure email-delivery milestone before public release. See [project status](docs/project-status.md) for completed work and limitations.

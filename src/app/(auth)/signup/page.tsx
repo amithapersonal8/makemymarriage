@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 export default async function SignupPage() {
   const user = await currentUser().catch(() => null);
-  if (user) redirect("/account");
+  if (user) redirect("/weddings");
   return (
     <div className="auth-grid">
       <section className="auth-form-section">

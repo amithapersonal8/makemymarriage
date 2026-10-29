@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "Log in | Make My Marriage" };
 export default async function LoginPage() {
   // A database outage must not make the public login form inaccessible.
   const user = await currentUser().catch(() => null);
-  if (user) redirect("/account");
+  if (user) redirect("/weddings");
   return (
     <div className="auth-grid">
       <section className="auth-form-section">

@@ -4,7 +4,7 @@
 
 - This repository is Make My Marriage V1, a single Next.js + TypeScript modular monolith.
 - Preserve the existing files in `docs/`. Use the latest explicit product decisions and finalized architecture when older PRD details conflict.
-- The approved scope includes the scaffold, public homepage, and account-access slice (signup/login/logout, expiring sessions, MongoDB-backed accounts, and a protected welcome page). Wedding setup, memberships, business modules, password-recovery email, integrations, and jobs require explicit approval for a later phase. Read the project status document for actual completion and validation.
+- The approved scope includes the scaffold, public homepage, account access, and wedding onboarding (list, single-form creation with atomic Owner membership, overview, and Owner editing), using the approved Stitch desktop/mobile designs. Invitation/membership management, other business modules, password-recovery email, integrations, and jobs require approval for later phases. Read the project status document for actual completion and validation.
 - Do not commit or push unless explicitly instructed.
 
 ## Project progress tracking
@@ -44,7 +44,9 @@
 - When business features are approved, enforce wedding membership and resource scope inside services on every operation. Never trust client-supplied roles or resource ownership.
 - Finalized member roles are Owner, Admin, and Manager; signup email verification is removed. Guests use purpose-scoped links without accounts.
 - Store money in integer minor units and represent wedding/event timezones explicitly when those domains are added.
+- Wedding onboarding dates are calendar dates stored as `YYYY-MM-DD` strings (empty when undecided), alongside an explicit IANA timezone. Future event timestamps remain UTC instants. Create each wedding and its initial Owner membership atomically; MongoDB transactions require a replica set such as Atlas.
 - Never log passwords, bearer tokens, secret invitation URLs, or guest personal data.
+- Unsaved wedding drafts are tab-memory-only and account-scoped. Preserve them through same-user reauthentication; clear them on account switch, save, or explicit form cancellation. Do not persist them in browser storage without an approved policy change.
 
 ## Validation
 

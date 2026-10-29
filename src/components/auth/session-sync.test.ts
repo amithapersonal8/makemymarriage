@@ -44,6 +44,21 @@ afterEach(() => {
 });
 
 describe("cross-tab account session invalidation", () => {
+  it("detects expiry in a foreground tab without focus or navigation", async () => {
+    vi.useFakeTimers();
+    Object.assign(browser, { setTimeout, clearTimeout });
+    try {
+      const { status } = start();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(status).toHaveBeenLastCalledWith("valid");
+      fetchMock.mockResolvedValueOnce(new Response(null, { status: 401 }));
+      await vi.advanceTimersByTimeAsync(30000);
+      expect(status).toHaveBeenLastCalledWith("invalid");
+    } finally {
+      for (const watcher of watchers.splice(0)) watcher.stop();
+      vi.useRealTimers();
+    }
+  });
   it("validates the cookie without using browser caches before displaying account details", async () => {
     const { status } = start();
     expect(status).toHaveBeenLastCalledWith("checking");

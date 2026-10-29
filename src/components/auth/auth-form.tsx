@@ -3,10 +3,15 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
+import {
+  useWeddingDrafts,
+  WeddingDraftNotice,
+} from "@/components/weddings/wedding-draft-provider";
 
 export function AuthForm({ mode }: { mode: "signup" | "login" }) {
   const isSignup = mode === "signup";
   const router = useRouter();
+  const { resume } = useWeddingDrafts();
   const [pending, setPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -42,12 +47,25 @@ export function AuthForm({ mode }: { mode: "signup" | "login" }) {
           password,
         }),
       });
+      const result: unknown = await response.json();
       if (response.ok) {
-        router.replace("/account");
+        if (
+          typeof result !== "object" ||
+          result === null ||
+          !("data" in result) ||
+          typeof result.data !== "object" ||
+          result.data === null ||
+          !("user" in result.data) ||
+          typeof result.data.user !== "object" ||
+          result.data.user === null ||
+          !("id" in result.data.user) ||
+          typeof result.data.user.id !== "string"
+        )
+          throw new Error("Invalid account response");
+        router.replace(resume(result.data.user.id) ?? "/weddings");
         router.refresh();
         return;
       }
-      const result: unknown = await response.json();
       if (typeof result === "object" && result !== null) {
         if ("details" in result && Array.isArray(result.details)) {
           const errors: Record<string, string> = {};
@@ -81,6 +99,7 @@ export function AuthForm({ mode }: { mode: "signup" | "login" }) {
 
   return (
     <>
+      {!isSignup && <WeddingDraftNotice />}
       <form className="auth-form" onSubmit={submit} aria-busy={pending}>
         <div
           className="auth-error"

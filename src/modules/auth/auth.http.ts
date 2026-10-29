@@ -54,7 +54,7 @@ export function assertSameOrigin(request: Request) {
   }
 }
 
-async function readJson(request: Request): Promise<unknown> {
+export async function readJson(request: Request): Promise<unknown> {
   if (
     request.headers.get("content-type")?.split(";")[0]?.trim().toLowerCase() !==
     "application/json"
